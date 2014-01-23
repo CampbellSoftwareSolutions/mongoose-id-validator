@@ -34,7 +34,7 @@ var CarSchema = new Schema({
   					required: true
   				  }
 });
-CarSchema.plugin(idvalidator, { message: 'Bad manufacturer' });
+CarSchema.plugin(idvalidator);
 var Car = mongoose.model('Car', CarSchema);
 
 var ford = new ManufacturerSchema({ name : 'Ford' });
@@ -44,7 +44,7 @@ ford.save(function() {
   focus.manufacturer = "50136e40c78c4b9403000001";
 
   focus.validate(function(err) {
-    //err.errors would contain a validation error with message "Bad manufacturer"
+    //err.errors would contain a validation error for manufacturer with default message
     
     focus.manufacturer = ford;
     focus.validate(function(err) {
@@ -53,6 +53,48 @@ ford.save(function() {
   });
 });
 ```
+
+You can also use this plugin to validate an array of ID references. Please note as above that the implementation
+runs a single count query to keep the performance impact to a minimum. Hence you will know if there is a
+bad ID value in the array of references but not which one it is. Example below:
+```javascript
+var idvalidator = require('mongoose-id-validator');
+
+var ColourSchema = new Schema({
+  name : String
+});
+var Colour = mongoose.model('Colour', ColourSchema);
+
+var CarSchema = new Schema({
+  name         : String,
+  colours	   : [{ 
+  					type: Schema.Types.ObjectId, 
+  					ref: 'Colour'
+  				  ]}
+});
+CarSchema.plugin(idvalidator);
+var Car = mongoose.model('Car', CarSchema);
+
+var red = new Colour({ name : 'Red' });
+var blue = new Colour({ name : 'Blue' });
+
+red.save(function() {
+  blue.save(function() {
+    var focus = new Car({ name : 'Focus' });
+    focus.colours = [red, "50136e40c78c4b9403000001"];
+
+    focus.validate(function(err) {
+      //err.errors would contain a validation error for colours with default message
+    
+      focus.colours = [red, blue]
+      focus.validate(function(err) {
+        //err will now be null as validation will pass
+      });
+    });
+  });
+});
+```
+
 ## Options
 
 ```javascript
