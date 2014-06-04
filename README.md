@@ -54,9 +54,29 @@ ford.save(function() {
 });
 ```
 
+You may also use declare a optional refConditions method in your schema. For example:
+```javascript
+var OtherSchema = new Schema({
+  referencedId : { 
+  					type: Schema.Types.ObjectId, 
+  					ref: 'RefSchema',
+  					refConditions: {
+  					  field1: 123
+  					}
+  				  }
+});
+```
+
+The referenceId value in the code above would only pass validation if the object with this ID exists AND had a property 
+'field1' that has the value 123. If any conditional property does not match then it would not pass validation.
+
 You can also use this plugin to validate an array of ID references. Please note as above that the implementation
 runs a single count query to keep the performance impact to a minimum. Hence you will know if there is a
-bad ID value in the array of references but not which one it is. Example below:
+bad ID value in the array of references but not which one it is.
+
+Please note that refConditions CANNOT be used with an array of ID references, only when referencing a single ID value.
+ 
+An example of this is below:
 ```javascript
 var idvalidator = require('mongoose-id-validator');
 
