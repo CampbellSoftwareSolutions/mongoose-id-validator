@@ -82,6 +82,14 @@ describe('mongoose-id-validator Integration Tests', function () {
         });
     });
 
+    it('Should pass validation with null ID', function (done) {
+        var c = new Car({
+            name: "Test Car",
+            manufacturer: null
+        });
+        c.validate(done);
+    });
+
     it('Should pass validation with existing ID', function (done) {
         var m = new Manufacturer({
             name: "Car Maker"
