@@ -200,7 +200,16 @@ describe('mongoose-id-validator Integration Tests', function () {
                 refConditions: {
                     gender: 'm'
                 }
-            }
+            },
+            femaleFriends: [
+                {
+                    type: Schema.Types.ObjectId,
+                    ref: 'Person',
+                    refConditions: {
+                        gender: 'f'
+                    }
+                }
+            ]
         });
         InfoSchema.plugin(validator);
         var Info = mongoose.model('Info', InfoSchema);
@@ -238,21 +247,13 @@ describe('mongoose-id-validator Integration Tests', function () {
             i.validate(done);
         });
 
-        it('Should throw error if declaring refConditions on array of ID references', function () {
-            var BadSchema = new Schema({
-                femaleFriends: [
-                    {
-                        type: Schema.Types.ObjectId,
-                        ref: 'Person',
-                        refConditions: {
-                            gender: 'f'
-                        }
-                    }
-                ]
+        it('Should not validate array of ID values containing value that exists but does not match conditions', function (done) {
+            var i = new Info({femaleFriends: [jill, jack]});
+            i.validate(function (err) {
+                err.should.property('name', 'ValidationError');
+                err.errors.should.property('femaleFriends');
+                done();
             });
-            (function () {
-                BadSchema.plugin(validator)
-            }).should.throw('Cannot declare refConditions on array of ID references');
         })
 
     });

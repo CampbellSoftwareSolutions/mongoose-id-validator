@@ -74,8 +74,6 @@ You can also use this plugin to validate an array of ID references. Please note 
 runs a single count query to keep the performance impact to a minimum. Hence you will know if there is a
 bad ID value in the array of references but not which one it is.
 
-Please note that refConditions CANNOT be used with an array of ID references, only when referencing a single ID value.
- 
 An example of this is below:
 ```javascript
 var idvalidator = require('mongoose-id-validator');
