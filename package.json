@@ -1,6 +1,6 @@
 {
   "name": "mongoose-id-validator",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Mongoose plugin to validate that ObjectID references refer to objects that actually exist in the referenced collection",
   "author": {
     "name": "Martin Campbell",
