@@ -62,32 +62,44 @@ describe('mongoose-id-validator Integration Tests', function () {
         });
     });
 
-    it('Should allow null manufacturer/colour IDs as developer can use '
-        + 'mongoose required option to make these mandatory', function (done) {
+    it('Should allow no manufacturer/colour IDs as developer can use '
+    + 'mongoose required option to make these mandatory', function (done) {
         var c = new Car({
             name: "Test Car"
         });
         c.save(done);
     });
 
-    it('Should fail validation with custom message on bad ID', function (done) {
-        var c = new Car({
-            name: "Test Car",
-            manufacturer: "50136e40c78c4b9403000001"
-        });
-        c.validate(function (err) {
-            err.name.should.eql('ValidationError');
-            err.errors.manufacturer.message.should.eql('manufacturer ID is bad');
-            done();
-        });
-    });
-
-    it('Should pass validation with null ID', function (done) {
+    it('Should pass validation with explicit null ID', function (done) {
         var c = new Car({
             name: "Test Car",
             manufacturer: null
         });
         c.validate(done);
+    });
+
+    it('Should pass validation with explicit undefined ID', function (done) {
+        var c = new Car({
+            name: "Test Car",
+            manufacturer: undefined
+        });
+        c.validate(done);
+    });
+
+    it('Should pass validation with explicit null array', function (done) {
+        var c = new Car({
+            name: "Test Car",
+            colours: null
+        });
+        c.save(done);
+    });
+
+    it('Should pass validation with explicit undefined array', function (done) {
+        var c = new Car({
+            name: "Test Car",
+            colours: undefined
+        });
+        c.save(done);
     });
 
     it('Should pass validation with existing ID', function (done) {
@@ -102,6 +114,18 @@ describe('mongoose-id-validator Integration Tests', function () {
             m.save.bind(m),
             c.save.bind(c)
         ], done);
+    });
+
+    it('Should fail validation with custom message on bad ID', function (done) {
+        var c = new Car({
+            name: "Test Car",
+            manufacturer: "50136e40c78c4b9403000001"
+        });
+        c.validate(function (err) {
+            err.name.should.eql('ValidationError');
+            err.errors.manufacturer.message.should.eql('manufacturer ID is bad');
+            done();
+        });
     });
 
     it('Should fail validation if bad ID set after previously good ID value', function (done) {
