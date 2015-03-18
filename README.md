@@ -127,11 +127,7 @@ Model.plugin(id-validator, {
 
 # Tests
 
-To run the tests install mocha
-
-    npm install mocha -g
-
-and then run (with a local MongoDB instance available)
+To run the tests you need a local MongoDB instance available. Run with:
 
     npm test
     
@@ -143,7 +139,7 @@ If you would like to submit a pull request with any changes you make, please fee
     
 # Legal
 
-Code is Copyright (C) Campbell Software Solutions 2014.
+Code is Copyright (C) Campbell Software Solutions 2014 - 2015.
 
 This module is available under terms of the LGPL V3 license. Hence you can use it in other proprietary projects 
 but any changes to the library should be made available.      

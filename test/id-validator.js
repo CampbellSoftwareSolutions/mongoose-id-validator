@@ -290,35 +290,4 @@ describe('mongoose-id-validator Integration Tests', function () {
 
     });
 
-    describe('Miscellaneous tests for reported issues & fixes (see GitHub)', function () {
-
-        var Event = mongoose.model('Event', {
-            name: String
-        });
-        var User = mongoose.model('User', {
-            name: String,
-            attending: {
-                type: Schema.Types.ObjectId,
-                ref: 'Event'
-            }
-        });
-
-        it('#1 - MissingSchemaError - TO BE AMENDED TO REPRODUCE', function (done) {
-            var u, e;
-
-            e = new Event({name: 'Meaning of the Universe'});
-            e.save(function (err) {
-                if (err) {
-                    return done(err);
-                }
-
-                u = new User({
-                    name: 'Albert Einstein',
-                    attending: e
-                });
-                u.save(done);
-            });
-        });
-
-    });
 });
