@@ -290,4 +290,57 @@ describe('mongoose-id-validator Integration Tests', function () {
 
     });
 
+    describe('Recursion Tests', function () {
+        var contactSchema = new mongoose.Schema({});
+        var listSchema = new mongoose.Schema({
+            name: String,
+            contacts: [{
+                reason: String,
+                contactId: {
+                    type: Schema.Types.ObjectId,
+                    ref: 'Contact'
+                }
+            }]
+        });
+        listSchema.plugin(validator);
+
+        var Contact = mongoose.model('Contact', contactSchema);
+        var List = mongoose.model('List', listSchema);
+
+        it('Should allow empty array', function (done) {
+            var obj = new List({name: 'Test', contacts: []});
+            obj.validate(done);
+        });
+
+        it('Should fail on invalid ID inside sub-schema', function (done) {
+            var obj = new List({
+                name: 'Test', contacts: [
+                    {reason: 'My friend', contactId: '50136e40c78c4b9403000001'}
+                ]
+            });
+            obj.validate(function(err) {
+                err.should.property('name', 'ValidationError');
+                err.errors.should.property('contacts.0.contactId');
+                done();
+            });
+        });
+
+        it('Should pass on valid ID in sub-schema', function (done) {
+            var c = new Contact({});
+            async.series([
+                function (cb) {
+                    c.save(cb);
+                },
+                function (cb) {
+                    var obj = new List({
+                        name: 'Test', contacts: [
+                            {reason: 'My friend', contactId: c}
+                        ]
+                    });
+                    obj.validate(cb);
+                }
+            ], done);
+        });
+    });
+
 });
