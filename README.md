@@ -121,7 +121,14 @@ Model.plugin(id-validator, {
   * with the relevant schema path that contains an invalid 
   * document ID.
   */
-  message : 'Bad ID value for {PATH}'  
+  message : 'Bad ID value for {PATH}',
+
+  /* Optional mongoose connection object to use if you are
+   * using multiple connections in your application.
+   *
+   * Defaults to built-in mongoose connection if not specified.
+   */
+  connection: myConnection
 });
 ```
 
