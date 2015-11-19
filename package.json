@@ -29,7 +29,7 @@
     "engine": "node >= 0.4.0",
     "main": "index.js",
     "scripts": {
-        "test": "mocha -R spec"
+        "test": "./node_modules/.bin/mocha -R spec"
     },
     "devDependencies": {
         "mongoose": "~3.8.0",

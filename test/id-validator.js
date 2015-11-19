@@ -5,7 +5,14 @@ var should = require('should');
 
 var Schema = mongoose.Schema;
 
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mongoose-id-validator');
+var url = 'mongodb://localhost:27017/mongoose-id-validator';
+if (process.env.MONGO_PORT_27017_TCP_PORT) {
+    url = 'mongodb://' + process.env.MONGO_PORT_27017_TCP_ADDR + ':' + process.env.MONGO_PORT_27017_TCP_PORT;
+}
+
+before(function (done) {
+    mongoose.connect(url, done);
+});
 
 describe('mongoose-id-validator Integration Tests', function () {
 
@@ -63,7 +70,7 @@ describe('mongoose-id-validator Integration Tests', function () {
     });
 
     it('Should allow no manufacturer/colour IDs as developer can use '
-    + 'mongoose required option to make these mandatory', function (done) {
+        + 'mongoose required option to make these mandatory', function (done) {
         var c = new Car({
             name: "Test Car"
         });
@@ -318,7 +325,7 @@ describe('mongoose-id-validator Integration Tests', function () {
                     {reason: 'My friend', contactId: '50136e40c78c4b9403000001'}
                 ]
             });
-            obj.validate(function(err) {
+            obj.validate(function (err) {
                 err.should.property('name', 'ValidationError');
                 err.errors.should.property('contacts.0.contactId');
                 done();
