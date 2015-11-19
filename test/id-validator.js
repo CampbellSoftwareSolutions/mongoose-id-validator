@@ -7,11 +7,13 @@ var Schema = mongoose.Schema;
 
 var url = 'mongodb://localhost:27017/mongoose-id-validator';
 if (process.env.MONGO_PORT_27017_TCP_PORT) {
-    url = 'mongodb://' + process.env.MONGO_PORT_27017_TCP_ADDR + ':' + process.env.MONGO_PORT_27017_TCP_PORT;
+    url = 'mongodb://' + process.env.MONGO_PORT_27017_TCP_ADDR + ':' + process.env.MONGO_PORT_27017_TCP_PORT + '/mongoose-id-validator';
 }
+var connection2;
 
 before(function (done) {
     mongoose.connect(url, done);
+    connection2 = mongoose.createConnection(url + '2');
 });
 
 describe('mongoose-id-validator Integration Tests', function () {
@@ -350,4 +352,68 @@ describe('mongoose-id-validator Integration Tests', function () {
         });
     });
 
+    describe('Connection tests', function () {
+        it('Correct connection should be used when specified as option', function (done) {
+            var UserSchema = new Schema({
+                name: String
+            });
+            var User1 = mongoose.model('User', UserSchema);
+            var User2 = connection2.model('User', UserSchema);
+
+            var ItemSchema1 = new Schema({
+                owner: {
+                    type: Schema.Types.ObjectId,
+                    ref: 'User'
+                }
+            });
+            ItemSchema1.plugin(validator);
+            var ItemSchema2 = new Schema({
+                owner: {
+                    type: Schema.Types.ObjectId,
+                    ref: 'User'
+                }
+            });
+            ItemSchema2.plugin(validator, {
+                connection: connection2
+            });
+            var Item1 = mongoose.model('Item', ItemSchema1);
+            var Item2 = connection2.model('Item', ItemSchema2);
+
+            var u1 = new User1({_id: '50136e40c78c4b9403000001'});
+            var u2 = new User2({_id: '50136e40c78c4b9403000002'});
+            var i1 = new Item1({owner: '50136e40c78c4b9403000001'});
+            var i2 = new Item2({owner: '50136e40c78c4b9403000002'});
+            var bad1 = new Item1({owner: '50136e40c78c4b9403000002'});
+            var bad2 = new Item2({owner: '50136e40c78c4b9403000001'});
+
+            async.series([
+                function (cb) {
+                    async.parallel(mongoose.connections.map(function (c) {
+                        return c.db.dropDatabase.bind(c.db);
+                    }), cb);
+                },
+                function (cb) {
+                    async.series([u1, u2, i1, i2].map(function (o) {
+                        return o.save.bind(o);
+                    }), cb);
+                },
+                function (cb) {
+                    bad1.validate(function (err) {
+                        should(!!err).eql(true);
+                        err.should.property('name', 'ValidationError');
+                        err.errors.should.property('owner');
+                        cb();
+                    });
+                },
+                function (cb) {
+                    bad2.validate(function (err) {
+                        should(!!err).eql(true);
+                        err.should.property('name', 'ValidationError');
+                        err.errors.should.property('owner');
+                        cb();
+                    });
+                }
+            ], done);
+        });
+    });
 });
