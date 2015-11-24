@@ -2,6 +2,7 @@ var mongoose = require('mongoose');
 var validator = require('../lib/id-validator');
 var async = require('async');
 var should = require('should');
+var IdValidator = require('../lib/id-validator').getConstructor;
 
 var Schema = mongoose.Schema;
 
@@ -10,6 +11,21 @@ if (process.env.MONGO_PORT_27017_TCP_PORT) {
     url = 'mongodb://' + process.env.MONGO_PORT_27017_TCP_ADDR + ':' + process.env.MONGO_PORT_27017_TCP_PORT + '/mongoose-id-validator';
 }
 var connection2;
+
+function validatorConcept(schema){
+
+    var idvalidator = new IdValidator();
+    schema.plugin(IdValidator.prototype.validate.bind(idvalidator));
+
+    schema.statics.enableValidation = function(){
+        idvalidator.enable();
+    }
+
+    schema.statics.disableValidation = function(){
+        idvalidator.disable();
+    }
+}
+
 
 before(function (done) {
     mongoose.connect(url, done);
@@ -57,11 +73,30 @@ describe('mongoose-id-validator Integration Tests', function () {
     });
     var Car = mongoose.model('Car', CarSchema);
 
+    var BikeSchema = new Schema({
+        name: String,
+        manufacturer: {
+            type: Schema.Types.ObjectId,
+            ref: 'Manufacturer'
+        },
+        colours: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: 'Colour'
+            }
+        ]
+    });
+
+    validatorConcept(BikeSchema);
+
+    var Bike = mongoose.model('Bike', BikeSchema);
+
     beforeEach(function (done) {
         async.parallel([
             Manufacturer.remove.bind(Manufacturer, {}),
             Colour.remove.bind(Colour, {}),
-            Car.remove.bind(Car, {})
+            Car.remove.bind(Car, {}),
+            Bike.remove.bind(Bike, {})
         ], function (err) {
             if (err) {
                 return done(err);
@@ -135,6 +170,27 @@ describe('mongoose-id-validator Integration Tests', function () {
             err.errors.manufacturer.message.should.eql('manufacturer ID is bad');
             done();
         });
+    });
+
+    it('Should fail validation on bad ID with IdValidator instance', function (done) {
+        var b = new Bike({
+            name: "Test Bike",
+            manufacturer: "50136e40c78c4b9403000001"
+        });
+        b.validate(function (err) {
+            err.name.should.eql('ValidationError');
+            err.errors.manufacturer.message.should.eql('manufacturer references a non existing ID');
+            done();
+        });
+    });
+
+    it('Should ignore validation when it is disabled', function (done) {
+        Bike.disableValidation();
+        var b = new Bike({
+            name: "Test Bike",
+            manufacturer: "50136e40c78c4b9403000001"
+        });
+        b.save(done);
     });
 
     it('Should fail validation if bad ID set after previously good ID value', function (done) {
