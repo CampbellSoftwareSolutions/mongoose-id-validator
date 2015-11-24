@@ -132,6 +132,23 @@ Model.plugin(id-validator, {
 });
 ```
 
+You can also instantiate the validator as an object if you wish to control whether it is enabled at runtime, e.g.
+for testing.
+
+```javascript
+var IdValidator = require('mongoose-id-validator').getConstructor;
+
+var validator = new IdValidator();
+schema.plugin(validator.validate.bind(validator));
+
+//Validation active by default. To disable:
+validator.disable();
+
+//Re-enable
+validator.enable();
+```
+
+
 # Tests
 
 To run the tests you need a local MongoDB instance available. Run with:
