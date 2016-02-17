@@ -129,6 +129,16 @@ Model.plugin(id-validator, {
    * Defaults to built-in mongoose connection if not specified.
    */
   connection: myConnection
+  
+  /* Applies to validation of arrays of ID references only. Set
+   * to true if you sometimes have the same object ID reference
+   * repeated in an array. If set, the validator will use the
+   * total of unique ID references instead of total number of array
+   * entries when checking the database.
+   *
+   * Defaults to false
+   */
+  allowDuplicates: true
 });
 ```
 

@@ -12,16 +12,16 @@ if (process.env.MONGO_PORT_27017_TCP_PORT) {
 }
 var connection2;
 
-function validatorConcept(schema){
+function validatorConcept(schema) {
 
     var idvalidator = new IdValidator();
     schema.plugin(IdValidator.prototype.validate.bind(idvalidator));
 
-    schema.statics.enableValidation = function(){
+    schema.statics.enableValidation = function () {
         idvalidator.enable();
     }
 
-    schema.statics.disableValidation = function(){
+    schema.statics.disableValidation = function () {
         idvalidator.disable();
     }
 }
@@ -351,7 +351,59 @@ describe('mongoose-id-validator Integration Tests', function () {
                 err.errors.should.property('femaleFriends');
                 done();
             });
-        })
+        });
+    });
+
+    describe('Array Duplicate Tests', function () {
+
+        var InventoryItemSchema = new Schema({
+            name: String
+        });
+
+        function createInventorySchema(options) {
+            var s = new Schema({
+                items: [
+                    {
+                        type: Schema.Types.ObjectId,
+                        ref: 'InventoryItem'
+                    }
+                ]
+            });
+            s.plugin(validator, options);
+            return s;
+        }
+
+        var InventoryNoDuplicatesSchema = createInventorySchema();
+        var InventoryDuplicatesSchema = createInventorySchema({
+            allowDuplicates: true
+        });
+
+
+        var InventoryItem = mongoose.model('InventoryItem', InventoryItemSchema);
+        var InventoryNoDuplicates = mongoose.model('InventoryNoDuplicates', InventoryNoDuplicatesSchema);
+        var InventoryDuplicates = mongoose.model('InventoryDuplicatesSchema', InventoryDuplicatesSchema);
+
+        var item1 = new InventoryItem({name: 'Widgets'});
+
+        before(function (done) {
+            async.series([
+                item1.save.bind(item1)
+            ], done);
+        });
+
+        it('Should fail to validate duplicate entries with default option', function (done) {
+            var i = new InventoryNoDuplicates({items: [item1, item1]});
+            i.validate(function (err) {
+                err.should.property('name', 'ValidationError');
+                err.errors.should.property('items');
+                done();
+            });
+        });
+
+        it('Should pass validation of duplicate entries when allowDuplicates set', function (done) {
+            var i = new InventoryDuplicates({items: [item1, item1]});
+            i.validate(done);
+        });
 
     });
 
