@@ -354,6 +354,91 @@ describe('mongoose-id-validator Integration Tests', function () {
         });
     });
 
+    describe('refConditions with function tests', function () {
+        var PeopleSchema = new Schema({
+            name: String,
+            gender: {
+                type: String,
+                enum: ['m', 'f']
+            }
+        });
+        var People = mongoose.model('People', PeopleSchema);
+
+        var FriendSchema = new Schema({
+			mustBeFemale: Boolean,
+			bestFriend: {
+				type: Schema.Types.ObjectId,
+				ref: 'People',
+				refConditions: {
+					gender: function () {
+						return this.mustBeFemale ? 'f' : 'm';
+					}
+				}
+			},
+			friends: [
+				{
+                    type: Schema.Types.ObjectId,
+                    ref: 'People',
+                    refConditions: {
+                        gender: function () {
+							return this.mustBeFemale ? 'f' : 'm';
+						}
+                    }
+                }
+			]
+        });
+        FriendSchema.plugin(validator);
+
+        var Friends = mongoose.model('Friends', FriendSchema);
+
+        var jack = new People({name: 'Jack', gender: 'm'});
+        var jill = new People({name: 'Jill', gender: 'f'});
+        var ann = new People({name: 'Ann', gender: 'f'});
+
+        before(function (done) {
+            async.series([
+                People.remove.bind(People, {}),
+                Friends.remove.bind(Friends, {}),
+                jack.save.bind(jack),
+                jill.save.bind(jill),
+                ann.save.bind(ann)
+            ], done);
+        });
+
+        it('Should validate with single ID value that matches condition', function (done) {
+            var i = new Friends({mustBeFemale: false, bestFriend: jack});
+            i.validate(done);
+        });
+
+        it('Should fail to validate single ID value that exists but does not match conditions', function (done) {
+            var i = new Friends({mustBeFemale: true, bestFriend: jack});
+            i.validate(function (err) {
+                err.should.property('name', 'ValidationError');
+                err.errors.should.property('bestFriend');
+                done();
+            });
+        });
+
+        it('Should validate array of ID values that match conditions', function (done) {
+            var i = new Friends({mustBeFemale: true, friends: [ann, jill]});
+            i.validate(done);
+        });
+
+        it('Should not validate array of ID values containing value that exists but does not match conditions', function (done) {
+            var i = new Friends({
+				mustBeFemale: true,
+				friends: [jill, jack]
+			});
+
+            i.validate(function (err) {
+                err.should.property('name', 'ValidationError');
+                err.errors.should.property('friends');
+
+                done();
+            });
+        });
+    });
+
     describe('Array Duplicate Tests', function () {
 
         var InventoryItemSchema = new Schema({

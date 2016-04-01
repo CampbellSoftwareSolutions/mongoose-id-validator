@@ -1,40 +1,44 @@
 {
-    "name": "mongoose-id-validator",
-    "version": "0.2.0",
-    "description": "Mongoose plugin to validate that ObjectID references refer to objects that actually exist in the referenced collection",
-    "author": {
-        "name": "Martin Campbell",
-        "email": "martin@campbellsoftware.co.uk",
-        "url": "http://www.campbellsoftware.co.uk"
-    },
-    "keywords": [
-        "mongoose",
-        "objectid",
-        "id",
-        "validate",
-        "validator",
-        "exists",
-        "mongodb"
-    ],
-    "homepage": "https://github.com/CampbellSoftwareSolutions/mongoose-id-validator",
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/CampbellSoftwareSolutions/mongoose-id-validator"
-    },
-    "license": "LGPL-3.0+",
-    "readmeFilename": "README.md",
-    "bugs": {
-        "url": "https://github.com/CampbellSoftwareSolutions/mongoose-id-validator/issues"
-    },
-    "engine": "node >= 0.4.0",
-    "main": "index.js",
-    "scripts": {
-        "test": "./node_modules/.bin/mocha -R spec"
-    },
-    "devDependencies": {
-        "mongoose": "*",
-        "async": "~0.2.9",
-        "should": "~3.0.1",
-        "mocha": "^2.2.1"
-    }
+  "name": "mongoose-id-validator",
+  "version": "0.2.0",
+  "description": "Mongoose plugin to validate that ObjectID references refer to objects that actually exist in the referenced collection",
+  "author": {
+    "name": "Martin Campbell",
+    "email": "martin@campbellsoftware.co.uk",
+    "url": "http://www.campbellsoftware.co.uk"
+  },
+  "keywords": [
+    "mongoose",
+    "objectid",
+    "id",
+    "validate",
+    "validator",
+    "exists",
+    "mongodb"
+  ],
+  "homepage": "https://github.com/CampbellSoftwareSolutions/mongoose-id-validator",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/CampbellSoftwareSolutions/mongoose-id-validator"
+  },
+  "license": "LGPL-3.0+",
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/CampbellSoftwareSolutions/mongoose-id-validator/issues"
+  },
+  "engine": "node >= 0.4.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "./node_modules/.bin/mocha -R spec"
+  },
+  "devDependencies": {
+    "mongoose": "*",
+    "async": "~0.2.9",
+    "should": "~3.0.1",
+    "mocha": "^2.2.1"
+  },
+  "dependencies": {
+    "deepcopy": "^0.6.1",
+    "traverse": "^0.6.6"
+  }
 }
