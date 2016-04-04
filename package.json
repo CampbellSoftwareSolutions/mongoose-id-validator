@@ -38,7 +38,7 @@
     "mocha": "^2.2.1"
   },
   "dependencies": {
-    "deepcopy": "^0.6.1",
+    "clone": "^1.0.2",
     "traverse": "^0.6.6"
   }
 }
