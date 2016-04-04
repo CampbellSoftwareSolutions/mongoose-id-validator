@@ -67,6 +67,24 @@ var OtherSchema = new Schema({
 });
 ```
 
+Values of refConditions can also be functions. With this you can dynamically set refConditions.
+These functions have access to the context of the schema instance. An example:
+
+```javascript
+var OtherSchema = new Schema({
+  refFieldMustBeTrue: true,
+  referencedId : {
+  					type: Schema.Types.ObjectId,
+  					ref: 'RefSchema',
+  					refConditions: {
+  					  field1: function () {
+						return this.refFieldMustBeTrue
+					  }
+  					}
+  				  }
+});
+```
+
 The referenceId value in the code above would only pass validation if the object with this ID exists AND had a property 
 'field1' that has the value 123. If any conditional property does not match then it would not pass validation.
 
