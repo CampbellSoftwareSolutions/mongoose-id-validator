@@ -264,7 +264,7 @@ describe('mongoose-id-validator Integration Tests', function () {
 
     it('Array of ID values should pass validation if not modified since last save', function (done) {
         var c = new Car({
-            name: "Test Car",
+                type: Schema.Types.ObjectId,
             colours: [
                 colours['red'],
                 colours['blue'],
@@ -278,6 +278,44 @@ describe('mongoose-id-validator Integration Tests', function () {
             },
             c.validate.bind(c)
         ], done);
+    });
+
+    it('Should not trigger ref validation if path not modified', function (done){
+        var m = new Manufacturer({})
+        var c = new Car({
+            manufacturer: m._id,
+            name:'c'
+        });
+        var called = 0;
+        var tmp = Manufacturer.count;
+        Manufacturer.count = function(){
+            called++;
+            return tmp.apply(this, arguments);
+        }
+        var first = function(func){
+            return function(){
+                var args = arguments;
+                func(function(err, res){
+                    return args[args.length-1](err, res)
+                })
+            }
+        }
+        async.waterfall([
+            m.save.bind(m),
+            first(c.save.bind(m)),//validates manufacter as new ref, idem triggers a count
+            first(Car.findById.bind(Car, c._id)),
+            function (c, cb) {
+                c.name = 'd';
+                c.validate(cb);//must not trigger a count as manufacturerId not modified
+            },
+            function(cb){
+                should(called).be.equal(1);
+                cb(null);
+            }
+        ], function(err){
+            Manufacturer.count = tmp;
+            done(err);
+        });
     });
 
     describe('refConditions tests', function () {
