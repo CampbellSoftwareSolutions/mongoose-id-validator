@@ -264,7 +264,7 @@ describe('mongoose-id-validator Integration Tests', function () {
 
     it('Array of ID values should pass validation if not modified since last save', function (done) {
         var c = new Car({
-                type: Schema.Types.ObjectId,
+            type: Schema.Types.ObjectId,
             colours: [
                 colours['red'],
                 colours['blue'],
@@ -280,39 +280,37 @@ describe('mongoose-id-validator Integration Tests', function () {
         ], done);
     });
 
-    it('Should not trigger ref validation if path not modified', function (done){
-        var m = new Manufacturer({})
+    it('Should not trigger ref validation if path not modified', function (done) {
+        var m = new Manufacturer({});
         var c = new Car({
             manufacturer: m._id,
-            name:'c'
+            name: 'c'
         });
         var called = 0;
         var tmp = Manufacturer.count;
-        Manufacturer.count = function(){
+        Manufacturer.count = function () {
             called++;
             return tmp.apply(this, arguments);
-        }
-        var first = function(func){
-            return function(){
-                var args = arguments;
-                func(function(err, res){
-                    return args[args.length-1](err, res)
-                })
-            }
-        }
+        };
         async.waterfall([
-            m.save.bind(m),
-            first(c.save.bind(m)),//validates manufacter as new ref, idem triggers a count
-            first(Car.findById.bind(Car, c._id)),
+            function (cb) {
+                m.save(cb);
+            },
+            function (a, b, cb) {
+                c.save(cb);
+            },
+            function (a, b, cb) {
+                Car.findById(c._id, cb);
+            },
             function (c, cb) {
                 c.name = 'd';
                 c.validate(cb);//must not trigger a count as manufacturerId not modified
             },
-            function(cb){
+            function (cb) {
                 should(called).be.equal(1);
                 cb(null);
             }
-        ], function(err){
+        ], function (err) {
             Manufacturer.count = tmp;
             done(err);
         });
@@ -403,27 +401,27 @@ describe('mongoose-id-validator Integration Tests', function () {
         var People = mongoose.model('People', PeopleSchema);
 
         var FriendSchema = new Schema({
-			mustBeFemale: Boolean,
-			bestFriend: {
-				type: Schema.Types.ObjectId,
-				ref: 'People',
-				refConditions: {
-					gender: function () {
-						return this.mustBeFemale ? 'f' : 'm';
-					}
-				}
-			},
-			friends: [
-				{
+            mustBeFemale: Boolean,
+            bestFriend: {
+                type: Schema.Types.ObjectId,
+                ref: 'People',
+                refConditions: {
+                    gender: function () {
+                        return this.mustBeFemale ? 'f' : 'm';
+                    }
+                }
+            },
+            friends: [
+                {
                     type: Schema.Types.ObjectId,
                     ref: 'People',
                     refConditions: {
                         gender: function () {
-							return this.mustBeFemale ? 'f' : 'm';
-						}
+                            return this.mustBeFemale ? 'f' : 'm';
+                        }
                     }
                 }
-			]
+            ]
         });
         FriendSchema.plugin(validator);
 
@@ -464,9 +462,9 @@ describe('mongoose-id-validator Integration Tests', function () {
 
         it('Should not validate array of ID values containing value that exists but does not match conditions', function (done) {
             var i = new Friends({
-				mustBeFemale: true,
-				friends: [jill, jack]
-			});
+                mustBeFemale: true,
+                friends: [jill, jack]
+            });
 
             i.validate(function (err) {
                 err.should.property('name', 'ValidationError');
