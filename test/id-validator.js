@@ -608,6 +608,29 @@ describe('mongoose-id-validator Integration Tests', function () {
         })
     })
 
+    describe('Self recursive schema', function () {
+        var Tasks = new mongoose.Schema()
+        Tasks.add({
+            title: String,
+            subtasks: [Tasks]
+        })
+        Tasks.plugin(validator)
+        var Task = mongoose.model('Tasks', Tasks)
+
+        it('Should validate recursive task', function (done) {
+            var t1 = new Task({title: 'Task 1'})
+            var t2 = new Task({title: 'Task 2', subtasks: [t1]})
+            async.series([
+                function (cb) {
+                    t1.save(cb)
+                },
+                function (cb) {
+                    t2.save(cb)
+                }
+            ], done)
+        })
+    })
+
     describe('Connection tests', function () {
         it('Correct connection should be used when specified as option',
             function (done) {
