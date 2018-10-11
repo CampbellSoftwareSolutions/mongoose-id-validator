@@ -307,10 +307,10 @@ describe('mongoose-id-validator Integration Tests', function () {
                 function (cb) {
                     m.save(cb)
                 },
-                function (a, b, cb) {
+                function (_, cb) {
                     c.save(cb)
                 },
-                function (a, b, cb) {
+                function (_, cb) {
                     Car.findById(c._id, cb)
                 },
                 function (c, cb) {
