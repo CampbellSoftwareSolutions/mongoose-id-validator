@@ -13,7 +13,7 @@ if (process.env.MONGO_PORT_27017_TCP_PORT) {
 }
 var connection2
 
-function validatorConcept (schema) {
+function validatorConcept(schema) {
 
     var idvalidator = new IdValidator()
     schema.plugin(IdValidator.prototype.validate.bind(idvalidator))
@@ -28,8 +28,8 @@ function validatorConcept (schema) {
 }
 
 before(function (done) {
-    mongoose.connect(url, done)
-    connection2 = mongoose.createConnection(url + '2')
+    mongoose.connect(url, { useNewUrlParser: true }, done)
+    connection2 = mongoose.createConnection(url + '2', { useNewUrlParser: true })
 })
 
 describe('mongoose-id-validator Integration Tests', function () {
@@ -93,10 +93,10 @@ describe('mongoose-id-validator Integration Tests', function () {
 
     beforeEach(function (done) {
         async.parallel([
-            Manufacturer.remove.bind(Manufacturer, {}),
-            Colour.remove.bind(Colour, {}),
-            Car.remove.bind(Car, {}),
-            Bike.remove.bind(Bike, {})
+            Manufacturer.deleteMany.bind(Manufacturer, {}),
+            Colour.deleteMany.bind(Colour, {}),
+            Car.deleteMany.bind(Car, {}),
+            Bike.deleteMany.bind(Bike, {})
         ], function (err) {
             if (err) {
                 return done(err)
@@ -108,11 +108,11 @@ describe('mongoose-id-validator Integration Tests', function () {
 
     it('Should allow no manufacturer/colour IDs as developer can use '
         + 'mongoose required option to make these mandatory', function (done) {
-        var c = new Car({
-            name: 'Test Car'
+            var c = new Car({
+                name: 'Test Car'
+            })
+            c.save(done)
         })
-        c.save(done)
-    })
 
     it('Should pass validation with explicit null ID', function (done) {
         var c = new Car({
@@ -235,7 +235,7 @@ describe('mongoose-id-validator Integration Tests', function () {
             async.series([
                 m.save.bind(m),
                 c.save.bind(c),
-                Manufacturer.remove.bind(Manufacturer, {}),
+                Manufacturer.deleteMany.bind(Manufacturer, {}),
                 c.save.bind(c)
             ], done)
         })
@@ -358,14 +358,14 @@ describe('mongoose-id-validator Integration Tests', function () {
         InfoSchema.plugin(validator)
         var Info = mongoose.model('Info', InfoSchema)
 
-        var jack = new Person({name: 'Jack', gender: 'm'})
-        var jill = new Person({name: 'Jill', gender: 'f'})
-        var ann = new Person({name: 'Ann', gender: 'f'})
+        var jack = new Person({ name: 'Jack', gender: 'm' })
+        var jill = new Person({ name: 'Jill', gender: 'f' })
+        var ann = new Person({ name: 'Ann', gender: 'f' })
 
         before(function (done) {
             async.series([
-                Person.remove.bind(Person, {}),
-                Info.remove.bind(Info, {}),
+                Person.deleteMany.bind(Person, {}),
+                Info.deleteMany.bind(Info, {}),
                 jack.save.bind(jack),
                 jill.save.bind(jill),
                 ann.save.bind(ann)
@@ -374,14 +374,14 @@ describe('mongoose-id-validator Integration Tests', function () {
 
         it('Should validate with single ID value that matches condition',
             function (done) {
-                var i = new Info({bestMaleFriend: jack})
+                var i = new Info({ bestMaleFriend: jack })
                 i.validate(done)
             })
 
         it(
             'Should fail to validate single ID value that exists but does not match conditions',
             function (done) {
-                var i = new Info({bestMaleFriend: jill})
+                var i = new Info({ bestMaleFriend: jill })
                 i.validate(function (err) {
                     err.should.property('name', 'ValidationError')
                     err.errors.should.property('bestMaleFriend')
@@ -391,14 +391,14 @@ describe('mongoose-id-validator Integration Tests', function () {
 
         it('Should validate array of ID values that match conditions',
             function (done) {
-                var i = new Info({femaleFriends: [ann, jill]})
+                var i = new Info({ femaleFriends: [ann, jill] })
                 i.validate(done)
             })
 
         it(
             'Should not validate array of ID values containing value that exists but does not match conditions',
             function (done) {
-                var i = new Info({femaleFriends: [jill, jack]})
+                var i = new Info({ femaleFriends: [jill, jack] })
                 i.validate(function (err) {
                     err.should.property('name', 'ValidationError')
                     err.errors.should.property('femaleFriends')
@@ -444,14 +444,14 @@ describe('mongoose-id-validator Integration Tests', function () {
 
         var Friends = mongoose.model('Friends', FriendSchema)
 
-        var jack = new People({name: 'Jack', gender: 'm'})
-        var jill = new People({name: 'Jill', gender: 'f'})
-        var ann = new People({name: 'Ann', gender: 'f'})
+        var jack = new People({ name: 'Jack', gender: 'm' })
+        var jill = new People({ name: 'Jill', gender: 'f' })
+        var ann = new People({ name: 'Ann', gender: 'f' })
 
         before(function (done) {
             async.series([
-                People.remove.bind(People, {}),
-                Friends.remove.bind(Friends, {}),
+                People.deleteMany.bind(People, {}),
+                Friends.deleteMany.bind(Friends, {}),
                 jack.save.bind(jack),
                 jill.save.bind(jill),
                 ann.save.bind(ann)
@@ -460,14 +460,14 @@ describe('mongoose-id-validator Integration Tests', function () {
 
         it('Should validate with single ID value that matches condition',
             function (done) {
-                var i = new Friends({mustBeFemale: false, bestFriend: jack})
+                var i = new Friends({ mustBeFemale: false, bestFriend: jack })
                 i.validate(done)
             })
 
         it(
             'Should fail to validate single ID value that exists but does not match conditions',
             function (done) {
-                var i = new Friends({mustBeFemale: true, bestFriend: jack})
+                var i = new Friends({ mustBeFemale: true, bestFriend: jack })
                 i.validate(function (err) {
                     err.should.property('name', 'ValidationError')
                     err.errors.should.property('bestFriend')
@@ -477,7 +477,7 @@ describe('mongoose-id-validator Integration Tests', function () {
 
         it('Should validate array of ID values that match conditions',
             function (done) {
-                var i = new Friends({mustBeFemale: true, friends: [ann, jill]})
+                var i = new Friends({ mustBeFemale: true, friends: [ann, jill] })
                 i.validate(done)
             })
 
@@ -504,7 +504,7 @@ describe('mongoose-id-validator Integration Tests', function () {
             name: String
         })
 
-        function createInventorySchema (options) {
+        function createInventorySchema(options) {
             var s = new Schema({
                 items: [
                     {
@@ -528,7 +528,7 @@ describe('mongoose-id-validator Integration Tests', function () {
         var InventoryDuplicates = mongoose.model('InventoryDuplicatesSchema',
             InventoryDuplicatesSchema)
 
-        var item1 = new InventoryItem({name: 'Widgets'})
+        var item1 = new InventoryItem({ name: 'Widgets' })
 
         before(function (done) {
             async.series([
@@ -538,7 +538,7 @@ describe('mongoose-id-validator Integration Tests', function () {
 
         it('Should fail to validate duplicate entries with default option',
             function (done) {
-                var i = new InventoryNoDuplicates({items: [item1, item1]})
+                var i = new InventoryNoDuplicates({ items: [item1, item1] })
                 i.validate(function (err) {
                     err.should.property('name', 'ValidationError')
                     err.errors.should.property('items')
@@ -548,7 +548,7 @@ describe('mongoose-id-validator Integration Tests', function () {
 
         it('Should pass validation of duplicate entries when allowDuplicates set',
             function (done) {
-                var i = new InventoryDuplicates({items: [item1, item1]})
+                var i = new InventoryDuplicates({ items: [item1, item1] })
                 i.validate(done)
             })
 
@@ -573,14 +573,14 @@ describe('mongoose-id-validator Integration Tests', function () {
         var List = mongoose.model('List', listSchema)
 
         it('Should allow empty array', function (done) {
-            var obj = new List({name: 'Test', contacts: []})
+            var obj = new List({ name: 'Test', contacts: [] })
             obj.validate(done)
         })
 
         it('Should fail on invalid ID inside sub-schema', function (done) {
             var obj = new List({
                 name: 'Test', contacts: [
-                    {reason: 'My friend', contactId: '50136e40c78c4b9403000001'}
+                    { reason: 'My friend', contactId: '50136e40c78c4b9403000001' }
                 ]
             })
             obj.validate(function (err) {
@@ -599,7 +599,7 @@ describe('mongoose-id-validator Integration Tests', function () {
                 function (cb) {
                     var obj = new List({
                         name: 'Test', contacts: [
-                            {reason: 'My friend', contactId: c}
+                            { reason: 'My friend', contactId: c }
                         ]
                     })
                     obj.validate(cb)
@@ -618,8 +618,8 @@ describe('mongoose-id-validator Integration Tests', function () {
         var Task = mongoose.model('Tasks', Tasks)
 
         it('Should validate recursive task', function (done) {
-            var t1 = new Task({title: 'Task 1'})
-            var t2 = new Task({title: 'Task 2', subtasks: [t1]})
+            var t1 = new Task({ title: 'Task 1' })
+            var t2 = new Task({ title: 'Task 2', subtasks: [t1] })
             async.series([
                 function (cb) {
                     t1.save(cb)
@@ -659,12 +659,12 @@ describe('mongoose-id-validator Integration Tests', function () {
                 var Item1 = mongoose.model('Item', ItemSchema1)
                 var Item2 = connection2.model('Item', ItemSchema2)
 
-                var u1 = new User1({_id: '50136e40c78c4b9403000001'})
-                var u2 = new User2({_id: '50136e40c78c4b9403000002'})
-                var i1 = new Item1({owner: '50136e40c78c4b9403000001'})
-                var i2 = new Item2({owner: '50136e40c78c4b9403000002'})
-                var bad1 = new Item1({owner: '50136e40c78c4b9403000002'})
-                var bad2 = new Item2({owner: '50136e40c78c4b9403000001'})
+                var u1 = new User1({ _id: '50136e40c78c4b9403000001' })
+                var u2 = new User2({ _id: '50136e40c78c4b9403000002' })
+                var i1 = new Item1({ owner: '50136e40c78c4b9403000001' })
+                var i2 = new Item2({ owner: '50136e40c78c4b9403000002' })
+                var bad1 = new Item1({ owner: '50136e40c78c4b9403000002' })
+                var bad2 = new Item2({ owner: '50136e40c78c4b9403000001' })
 
                 async.series([
                     function (cb) {
