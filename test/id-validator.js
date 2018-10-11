@@ -298,8 +298,8 @@ describe('mongoose-id-validator Integration Tests', function () {
                 name: 'c'
             })
             var called = 0
-            var tmp = Manufacturer.count
-            Manufacturer.count = function () {
+            var tmp = Manufacturer.countDocuments
+            Manufacturer.countDocuments = function () {
                 called++
                 return tmp.apply(this, arguments)
             }
@@ -322,7 +322,7 @@ describe('mongoose-id-validator Integration Tests', function () {
                     cb(null)
                 }
             ], function (err) {
-                Manufacturer.count = tmp
+                Manufacturer.countDocuments = tmp
                 done(err)
             })
         })
