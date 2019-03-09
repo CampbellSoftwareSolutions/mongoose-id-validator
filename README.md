@@ -106,7 +106,7 @@ var CarSchema = new Schema({
   colours	   : [{ 
   					type: Schema.Types.ObjectId, 
   					ref: 'Colour'
-  				  ]}
+  				  }]
 });
 CarSchema.plugin(idvalidator);
 var Car = mongoose.model('Car', CarSchema);
