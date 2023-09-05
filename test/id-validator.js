@@ -1,6 +1,5 @@
 var mongoose = require('mongoose')
 var validator = require('../lib/id-validator')
-var async = require('async')
 var should = require('should')
 var IdValidator = require('../lib/id-validator').getConstructor
 
@@ -27,8 +26,8 @@ function validatorConcept(schema) {
     }
 }
 
-before(function (done) {
-    mongoose.connect(url, { useNewUrlParser: true }, done)
+before(async function () {
+    await mongoose.connect(url, { useNewUrlParser: true })
     connection2 = mongoose.createConnection(url + '2', { useNewUrlParser: true })
 })
 
@@ -44,16 +43,6 @@ describe('mongoose-id-validator Integration Tests', function () {
     var Colour = mongoose.model('Colour', ColourSchema)
 
     var colours = {}
-    var saveColours = []
-    'red green black blue silver'.split(' ').forEach(function (c) {
-        saveColours.push(function (cb) {
-            var newColour = new Colour({
-                name: c
-            })
-            colours[c] = newColour
-            newColour.save(cb)
-        })
-    })
 
     var CarSchema = new Schema({
         name: String,
@@ -91,207 +80,206 @@ describe('mongoose-id-validator Integration Tests', function () {
 
     var Bike = mongoose.model('Bike', BikeSchema)
 
-    beforeEach(function (done) {
-        async.parallel([
-            Manufacturer.deleteMany.bind(Manufacturer, {}),
-            Colour.deleteMany.bind(Colour, {}),
-            Car.deleteMany.bind(Car, {}),
-            Bike.deleteMany.bind(Bike, {})
-        ], function (err) {
-            if (err) {
-                return done(err)
-            }
-            colours = []
-            async.parallel(saveColours, done)
-        })
+    beforeEach(async function () {
+        await Promise.all([
+            Manufacturer.deleteMany({}),
+            Colour.deleteMany({}),
+            Car.deleteMany({}),
+            Bike.deleteMany({})
+        ])
+        colours = {}
+        await Promise.all(
+            'red green black blue silver'.split(' ').map((c) => {
+            var newColour = new Colour({
+                name: c
+            })
+            colours[c] = newColour
+            return newColour.save()
+        }))
     })
 
     it('Should allow no manufacturer/colour IDs as developer can use '
-        + 'mongoose required option to make these mandatory', function (done) {
+        + 'mongoose required option to make these mandatory', async function () {
             var c = new Car({
                 name: 'Test Car'
             })
-            c.save(done)
+            await c.save()
         })
 
-    it('Should pass validation with explicit null ID', function (done) {
+    it('Should pass validation with explicit null ID', async function () {
         var c = new Car({
             name: 'Test Car',
             manufacturer: null
         })
-        c.validate(done)
+        await c.validate()
     })
 
-    it('Should pass validation with explicit undefined ID', function (done) {
+    it('Should pass validation with explicit undefined ID', async function () {
         var c = new Car({
             name: 'Test Car',
             manufacturer: undefined
         })
-        c.validate(done)
+        await c.validate()
     })
 
-    it('Should pass validation with explicit null array', function (done) {
+    it('Should pass validation with explicit null array', async function () {
         var c = new Car({
             name: 'Test Car',
             colours: null
         })
-        c.save(done)
+        await c.save()
     })
 
-    it('Should pass validation with explicit undefined array', function (done) {
+    it('Should pass validation with explicit undefined array', async function () {
         var c = new Car({
             name: 'Test Car',
             colours: undefined
         })
-        c.save(done)
+        await c.save()
     })
 
-    it('Should pass validation with existing ID', function (done) {
+    it('Should pass validation with existing ID', async function () {
         var m = new Manufacturer({
             name: 'Car Maker'
         })
         var c = new Car({
             name: 'Test Car',
-            manufacturer: m
+            manufacturer: m._id
         })
-        async.series([
-            m.save.bind(m),
-            c.save.bind(c)
-        ], done)
+        await m.save()
+        await c.save()
     })
 
-    it('Should fail validation with custom message on bad ID', function (done) {
+    it('Should fail validation with custom message on bad ID', async function () {
         var c = new Car({
             name: 'Test Car',
             manufacturer: '50136e40c78c4b9403000001'
         })
-        c.validate(function (err) {
+
+        try {
+            await c.validate();
+        }
+        catch(err) {
             err.name.should.eql('ValidationError')
             err.errors.manufacturer.message.should.eql('manufacturer ID is bad')
-            done()
-        })
+        }
     })
 
-    it('Should fail validation on bad ID with IdValidator instance',
-        function (done) {
+    it('Should fail validation on bad ID with IdValidator instance', async function () {
             var b = new Bike({
                 name: 'Test Bike',
                 manufacturer: '50136e40c78c4b9403000001'
             })
-            b.validate(function (err) {
+            try {
+                await b.validate();
+            }
+            catch(err) {
                 err.name.should.eql('ValidationError')
                 err.errors.manufacturer.message.should.eql(
                     'manufacturer references a non existing ID')
-                done()
-            })
+            }
         })
 
-    it('Should ignore validation when it is disabled', function (done) {
+    it('Should ignore validation when it is disabled', async function () {
         Bike.disableValidation()
         var b = new Bike({
             name: 'Test Bike',
             manufacturer: '50136e40c78c4b9403000001'
         })
-        b.save(done)
+        await b.save()
     })
 
     it('Should fail validation if bad ID set after previously good ID value',
-        function (done) {
+        async function () {
             var savePassed = false
             var m = new Manufacturer({
                 name: 'Car Maker'
             })
             var c = new Car({
                 name: 'Test Car',
-                manufacturer: m
+                manufacturer: m._id
             })
-            async.series([
-                m.save.bind(m),
-                c.save.bind(c),
-                function (cb) {
-                    savePassed = true
-                    c.manufacturer = '50136e40c78c4b9403000001'
-                    c.save(cb)
-                }
-            ], function (err) {
+
+            try {
+                await m.save()
+                await c.save()
+                savePassed = true
+                c.manufacturer = '50136e40c78c4b9403000001'
+                await c.save()
+            }
+            catch(err) {
                 should(savePassed).be.ok
                 err.name.should.eql('ValidationError')
-                err.errors.manufacturer.message.should.eql(
-                    'manufacturer ID is bad')
-                done()
-            })
+                err.errors.manufacturer.message.should.eql('manufacturer ID is bad')
+            }
         })
 
     it(
         'Should pass validation if no ID value changed (even when manufacturer subsequently removed)',
-        function (done) {
+        async function () {
             var m = new Manufacturer({
                 name: 'Car Maker'
             })
             var c = new Car({
                 name: 'Test Car',
-                manufacturer: m
+                manufacturer: m._id
             })
-            async.series([
-                m.save.bind(m),
-                c.save.bind(c),
-                Manufacturer.deleteMany.bind(Manufacturer, {}),
-                c.save.bind(c)
-            ], done)
+            await m.save()
+            await c.save()
+            await Manufacturer.deleteMany({})
+            await c.save()
         })
 
     it('Should validate correctly IDs in an array of ID references',
-        function (done) {
+        async function () {
             var c = new Car({
                 name: 'Test Car',
                 colours: [
-                    colours['red'],
-                    colours['blue'],
-                    colours['black']
+                    colours['red']._id,
+                    colours['blue']._id,
+                    colours['black']._id
                 ]
             })
-            c.save(done)
+            await c.save()
         })
 
     it('Should fail ID validation in an array of ID references',
-        function (done) {
+        async function () {
             var c = new Car({
                 name: 'Test Car',
                 colours: [
-                    colours['red'],
+                    colours['red']._id,
                     '50136e40c78c4b9403000001',
-                    colours['black']
+                    colours['black']._id
                 ]
             })
-            c.save(function (err) {
+            try {
+                await c.save()
+            }
+            catch (err) {
                 err.name.should.eql('ValidationError')
                 err.errors.colours.message.should.eql('colours ID is bad')
-                done()
-            })
+            }
         })
 
     it(
         'Array of ID values should pass validation if not modified since last save',
-        function (done) {
+        async function () {
             var c = new Car({
                 type: Schema.Types.ObjectId,
                 colours: [
-                    colours['red'],
-                    colours['blue'],
-                    colours['black']
+                    colours['red']._id,
+                    colours['blue']._id,
+                    colours['black']._id
                 ]
             })
-            async.series([
-                c.save.bind(c),
-                function (cb) {
-                    colours['blue'].remove(cb)
-                },
-                c.validate.bind(c)
-            ], done)
+            await c.save()
+            await colours['blue'].deleteOne()
+            await c.validate()
         })
 
     it('Should not trigger ref validation if path not modified',
-        function (done) {
+        async function () {
             var m = new Manufacturer({})
             var c = new Car({
                 manufacturer: m._id,
@@ -303,28 +291,15 @@ describe('mongoose-id-validator Integration Tests', function () {
                 called++
                 return tmp.apply(this, arguments)
             }
-            async.waterfall([
-                function (cb) {
-                    m.save(cb)
-                },
-                function (_, cb) {
-                    c.save(cb)
-                },
-                function (_, cb) {
-                    Car.findById(c._id, cb)
-                },
-                function (c, cb) {
-                    c.name = 'd'
-                    c.validate(cb)//must not trigger a count as manufacturerId not modified
-                },
-                function (cb) {
-                    should(called).be.equal(1)
-                    cb(null)
-                }
-            ], function (err) {
-                Manufacturer.countDocuments = tmp
-                done(err)
-            })
+
+            await m.save()
+            await c.save()
+            var carRes = Car.findById(c._id)
+            carRes.name = 'd'
+            await carRes.validate() //must not trigger a count as manufacturerId not modified
+            should(called).be.equal(1)
+
+            Manufacturer.countDocuments = tmp
         })
 
     describe('refConditions tests', function () {
@@ -362,48 +337,50 @@ describe('mongoose-id-validator Integration Tests', function () {
         var jill = new Person({ name: 'Jill', gender: 'f' })
         var ann = new Person({ name: 'Ann', gender: 'f' })
 
-        before(function (done) {
-            async.series([
-                Person.deleteMany.bind(Person, {}),
-                Info.deleteMany.bind(Info, {}),
-                jack.save.bind(jack),
-                jill.save.bind(jill),
-                ann.save.bind(ann)
-            ], done)
+        before(async function () {
+            await Person.deleteMany({})
+            await Info.deleteMany({})
+            await jack.save()
+            await jill.save()
+            await ann.save()
         })
 
         it('Should validate with single ID value that matches condition',
-            function (done) {
-                var i = new Info({ bestMaleFriend: jack })
-                i.validate(done)
+            async function () {
+                var i = new Info({ bestMaleFriend: jack._id })
+                await i.validate()
             })
 
         it(
             'Should fail to validate single ID value that exists but does not match conditions',
-            function (done) {
-                var i = new Info({ bestMaleFriend: jill })
-                i.validate(function (err) {
+            async function () {
+                var i = new Info({ bestMaleFriend: jill._id })
+                try {
+                    await i.validate();
+                }
+                catch (err) {
                     err.should.property('name', 'ValidationError')
                     err.errors.should.property('bestMaleFriend')
-                    done()
-                })
+                }
             })
 
         it('Should validate array of ID values that match conditions',
-            function (done) {
-                var i = new Info({ femaleFriends: [ann, jill] })
-                i.validate(done)
+            async function () {
+                var i = new Info({ femaleFriends: [ann._id, jill._id] })
+                await i.validate()
             })
 
         it(
             'Should not validate array of ID values containing value that exists but does not match conditions',
-            function (done) {
-                var i = new Info({ femaleFriends: [jill, jack] })
-                i.validate(function (err) {
+            async function () {
+                var i = new Info({ femaleFriends: [jill._id, jack._id] })
+                try {
+                    await i.validate()
+                }
+                catch (err) {
                     err.should.property('name', 'ValidationError')
                     err.errors.should.property('femaleFriends')
-                    done()
-                })
+                }
             })
     })
 
@@ -448,53 +425,54 @@ describe('mongoose-id-validator Integration Tests', function () {
         var jill = new People({ name: 'Jill', gender: 'f' })
         var ann = new People({ name: 'Ann', gender: 'f' })
 
-        before(function (done) {
-            async.series([
-                People.deleteMany.bind(People, {}),
-                Friends.deleteMany.bind(Friends, {}),
-                jack.save.bind(jack),
-                jill.save.bind(jill),
-                ann.save.bind(ann)
-            ], done)
+        before(async function () {
+            await People.deleteMany({})
+            await Friends.deleteMany({})
+            await jack.save()
+            await jill.save()
+            await ann.save()
         })
 
         it('Should validate with single ID value that matches condition',
-            function (done) {
-                var i = new Friends({ mustBeFemale: false, bestFriend: jack })
-                i.validate(done)
+            async function () {
+                var i = new Friends({ mustBeFemale: false, bestFriend: jack._id })
+                await i.validate()
             })
 
         it(
             'Should fail to validate single ID value that exists but does not match conditions',
-            function (done) {
-                var i = new Friends({ mustBeFemale: true, bestFriend: jack })
-                i.validate(function (err) {
+            async function () {
+                var i = new Friends({ mustBeFemale: true, bestFriend: jack._id })
+                try {
+                    await i.validate()
+                }
+                catch(err) {
                     err.should.property('name', 'ValidationError')
                     err.errors.should.property('bestFriend')
-                    done()
-                })
+                }
             })
 
         it('Should validate array of ID values that match conditions',
-            function (done) {
-                var i = new Friends({ mustBeFemale: true, friends: [ann, jill] })
-                i.validate(done)
+            async function () {
+                var i = new Friends({ mustBeFemale: true, friends: [ann._id, jill._id] })
+                await i.validate()
             })
 
         it(
             'Should not validate array of ID values containing value that exists but does not match conditions',
-            function (done) {
+            async function () {
                 var i = new Friends({
                     mustBeFemale: true,
-                    friends: [jill, jack]
+                    friends: [jill._id, jack._id]
                 })
 
-                i.validate(function (err) {
+                try {
+                    await i.validate()
+                }
+                catch(err) {
                     err.should.property('name', 'ValidationError')
                     err.errors.should.property('friends')
-
-                    done()
-                })
+                }
             })
     })
 
@@ -530,26 +508,26 @@ describe('mongoose-id-validator Integration Tests', function () {
 
         var item1 = new InventoryItem({ name: 'Widgets' })
 
-        before(function (done) {
-            async.series([
-                item1.save.bind(item1)
-            ], done)
+        before(async function () {
+            await item1.save()
         })
 
         it('Should fail to validate duplicate entries with default option',
-            function (done) {
-                var i = new InventoryNoDuplicates({ items: [item1, item1] })
-                i.validate(function (err) {
+            async function () {
+                var i = new InventoryNoDuplicates({ items: [item1._id, item1._id] })
+                try {
+                    i.validate()
+                }
+                catch(err) {
                     err.should.property('name', 'ValidationError')
                     err.errors.should.property('items')
-                    done()
-                })
+                }
             })
 
         it('Should pass validation of duplicate entries when allowDuplicates set',
-            function (done) {
-                var i = new InventoryDuplicates({ items: [item1, item1] })
-                i.validate(done)
+            async function () {
+                var i = new InventoryDuplicates({ items: [item1._id, item1._id] })
+                await i.validate()
             })
 
     })
@@ -572,39 +550,35 @@ describe('mongoose-id-validator Integration Tests', function () {
         var Contact = mongoose.model('Contact', contactSchema)
         var List = mongoose.model('List', listSchema)
 
-        it('Should allow empty array', function (done) {
+        it('Should allow empty array', async function () {
             var obj = new List({ name: 'Test', contacts: [] })
-            obj.validate(done)
+            await obj.validate()
         })
 
-        it('Should fail on invalid ID inside sub-schema', function (done) {
+        it('Should fail on invalid ID inside sub-schema', async function () {
             var obj = new List({
                 name: 'Test', contacts: [
                     { reason: 'My friend', contactId: '50136e40c78c4b9403000001' }
                 ]
             })
-            obj.validate(function (err) {
+            try {
+                await obj.validate()
+            }
+            catch (err) {
                 err.should.property('name', 'ValidationError')
                 err.errors.should.property('contacts.0.contactId')
-                done()
-            })
+            }
         })
 
-        it('Should pass on valid ID in sub-schema', function (done) {
+        it('Should pass on valid ID in sub-schema', async function () {
             var c = new Contact({})
-            async.series([
-                function (cb) {
-                    c.save(cb)
-                },
-                function (cb) {
-                    var obj = new List({
-                        name: 'Test', contacts: [
-                            { reason: 'My friend', contactId: c }
-                        ]
-                    })
-                    obj.validate(cb)
-                }
-            ], done)
+            await c.save()
+            var obj = new List({
+                name: 'Test', contacts: [
+                    { reason: 'My friend', contactId: c._id }
+                ]
+            })
+            await obj.validate()
         })
     })
 
@@ -617,23 +591,17 @@ describe('mongoose-id-validator Integration Tests', function () {
         Tasks.plugin(validator)
         var Task = mongoose.model('Tasks', Tasks)
 
-        it('Should validate recursive task', function (done) {
+        it('Should validate recursive task', async function () {
             var t1 = new Task({ title: 'Task 1' })
-            var t2 = new Task({ title: 'Task 2', subtasks: [t1] })
-            async.series([
-                function (cb) {
-                    t1.save(cb)
-                },
-                function (cb) {
-                    t2.save(cb)
-                }
-            ], done)
+            var t2 = new Task({ title: 'Task 2', subtasks: [t1._id] })
+            await t1.save()
+            await t2.save()
         })
     })
 
     describe('Connection tests', function () {
         it('Correct connection should be used when specified as option',
-            function (done) {
+            async function () {
                 var UserSchema = new Schema({
                     name: String
                 })
@@ -666,34 +634,29 @@ describe('mongoose-id-validator Integration Tests', function () {
                 var bad1 = new Item1({ owner: '50136e40c78c4b9403000002' })
                 var bad2 = new Item2({ owner: '50136e40c78c4b9403000001' })
 
-                async.series([
-                    function (cb) {
-                        async.parallel(mongoose.connections.map(function (c) {
-                            return c.db.dropDatabase.bind(c.db)
-                        }), cb)
-                    },
-                    function (cb) {
-                        async.series([u1, u2, i1, i2].map(function (o) {
-                            return o.save.bind(o)
-                        }), cb)
-                    },
-                    function (cb) {
-                        bad1.validate(function (err) {
-                            should(!!err).eql(true)
-                            err.should.property('name', 'ValidationError')
-                            err.errors.should.property('owner')
-                            cb()
-                        })
-                    },
-                    function (cb) {
-                        bad2.validate(function (err) {
-                            should(!!err).eql(true)
-                            err.should.property('name', 'ValidationError')
-                            err.errors.should.property('owner')
-                            cb()
-                        })
-                    }
-                ], done)
+                await Promise.all(mongoose.connections.map((c) => {
+                    return c.db.dropDatabase()
+                }))
+                await u1.save()
+                await u2.save()
+                await i1.save()
+                await i2.save()
+                try {
+                    await bad1.validate()
+                }
+                catch(err) {
+                    should(!!err).eql(true)
+                    err.should.property('name', 'ValidationError')
+                    err.errors.should.property('owner')
+                }
+                try {
+                    await bad2.validate()
+                }
+                catch (err) {
+                    should(!!err).eql(true)
+                    err.should.property('name', 'ValidationError')
+                    err.errors.should.property('owner')
+                }
             })
     })
 })
