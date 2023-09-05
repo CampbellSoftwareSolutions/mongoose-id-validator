@@ -32,13 +32,15 @@
         "test": "./node_modules/.bin/mocha -R spec"
     },
     "devDependencies": {
+        "mocha": "^10.2.0",
         "mongoose": "*",
-        "async": "~0.2.9",
-        "should": "~3.0.1",
-        "mocha": "^2.2.1"
+        "should": "~3.0.1"
     },
     "dependencies": {
         "clone": "^1.0.2",
         "traverse": "^0.6.6"
+    },
+    "mocha": {
+        "exit": true
     }
 }
